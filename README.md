@@ -1,11 +1,5 @@
 # 《▓ Immersive Weathering: Tweaks ▓》
 
-<p align="center">
-  <a href="https://www.admany.dev/">
-    <img src="https://i.imghippo.com/files/fC4894ILw.png" alt="Powered by Quantified API">
-  </a>
-</p>
-
 Immersive Weathering: Tweaks, or IWT, is a performance addon for Immersive Weathering that makes its area checks, growth processing, and weathering logic a LOT less heavy.
 
 Immersive Weathering normally creates a ton of temporary position lists and objects while checking nearby blocks. IWT replaces the heavier parts of that system with reusable packed templates and per-thread scratch buffers.
@@ -19,9 +13,9 @@ Same checks, same order, same results. Just faster, lighter, and a lot less bull
 - Uses reusable packed position templates instead of rebuilding large lists constantly
 - Uses per-thread scratch buffers to avoid useless array allocations
 - Preserves native position order, random shuffling, rule checks, and results
-- Uses Quantified API to prewarm its known templates safely in the background
+- Prewarms its known templates directly during server startup
 
-Quantified API handles the startup prewarm, while the main speedup comes from reusing the packed templates during gameplay.
+The startup prewarm is a tiny one-time operation. The main speedup still comes from reusing the packed templates during gameplay.
 
 ## 《▒ Performance ▒》
 
@@ -54,9 +48,11 @@ So yh, it keeps a few kilobytes around to avoid creating hundreds of megabytes o
 
 - Minecraft **1.20.1**
 - Immersive Weathering **2.0.5**
-- Quantified API **V2.1+**
 - Forge
 - Fabric
+- Can be installed **server-side only** on dedicated servers; connecting clients do not need IWT installed
+
+IWT adds no runtime-library dependency of its own; install Immersive Weathering and its normal dependencies.
 
 ## 《▒ Building ▒》
 

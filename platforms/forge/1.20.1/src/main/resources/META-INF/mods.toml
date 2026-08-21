@@ -9,6 +9,7 @@ displayName="${mod_name}"
 logoFile="iwt.png"
 authors="${mod_authors}"
 description='''${mod_description}'''
+displayTest="IGNORE_SERVER_VERSION"
 
 [[dependencies.${mod_id}]]
 modId="forge"
@@ -28,12 +29,5 @@ side="BOTH"
 modId="immersive_weathering"
 mandatory=true
 versionRange="[${immersive_weathering_version},)"
-ordering="AFTER"
-side="BOTH"
-
-[[dependencies.${mod_id}]]
-modId="quantified"
-mandatory=true
-versionRange="[${quantified_api_version},3)"
 ordering="AFTER"
 side="BOTH"
