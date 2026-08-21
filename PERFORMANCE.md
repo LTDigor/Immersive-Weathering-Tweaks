@@ -6,7 +6,7 @@ IWT replaces Immersive Weathering 2.0.5's heavy `BlockPos` list creation and ite
 
 Basically, instead of constantly creating thousands of temporary objects and expecting Java's garbage collector to clean everything up without crying, IWT reuses a tiny amount of already prepared data.
 
-Quantified API V2 prewarms the eight known templates in the background. It helps avoid the first lazy cache build, but it is **not** where the main performance gain comes from. The actual improvement comes from the packed templates and reusable scratch buffers used during gameplay.
+IWT prewarms the eight known templates directly during server startup. This avoids the first lazy cache build, but it is **not** where the main performance gain comes from. The actual improvement comes from the packed templates and reusable scratch buffers used during gameplay.
 
 Before any performance result was accepted, every supported area shape passed correctness testing:
 
@@ -32,6 +32,8 @@ These results only cover the tested Immersive Weathering code paths. They do not
 | Allocation measurement         | `com.sun.management.ThreadMXBean`                                             |
 | Retained-memory measurement    | JOL 0.17 object graph                                                         |
 | Runtime profile                | 180-second Spark Java-engine profile, random tick speed 1000, one fake player |
+
+Quantified API appears in this table because it documents the IWT 1.1.0 profile. It is no longer a runtime dependency.
 
 The native comparison recreates Immersive Weathering's original behaviour using a list of position objects followed by Java's `Collections.shuffle`.
 
@@ -142,22 +144,18 @@ Checksums in shape order:
 
 All checksums matched between the native and optimized implementations.
 
-## Cold, warm and Quantified API-prewarmed states
+## Cold, warm and prewarmed states
 
-| State or measurement                |                                                Result |
-| ----------------------------------- | ----------------------------------------------------: |
-| Cold first use of largest shape     |           134.600 µs and 9,208 B temporary allocation |
-| Warm known-shape cache lookup       | 32.12 ns per lookup and 0 B/op across 1,000,000 calls |
-| Quantified API-prewarmed path       |                             Same warm production path |
-| Template build time                 |                 Included in the cold first-use result |
-| Quantified API submission overhead  |                               Not separately measured |
-| Quantified API dispatch delay       |                               Not separately measured |
-| Quantified API temporary allocation |                               Not separately measured |
-| Retained data after prewarm         |                               Same 15,680 B IWT cache |
+| State or measurement            |                                               Result |
+| ------------------------------- | ----------------------------------------------------: |
+| Cold first use of largest shape |          134.600 µs and 9,208 B temporary allocation |
+| Warm known-shape cache lookup   | 32.12 ns per lookup and 0 B/op across 1,000,000 calls |
+| Prewarmed cache path            |                            Same warm production path |
+| Template build time             |                Included in the cold first-use result |
+| Prewarm invocation overhead     |                              Not separately measured |
+| Retained data after prewarm     |                              Same 15,680 B IWT cache |
 
-The Quantified API task uses one parallel unit because it is one cache-prewarm task. It is not pretending that eight templates magically mean eight fully parallel jobs xd.
-
-Quantified API mainly moves the first template construction away from the server thread.
+The built-in startup hook calls `precomputeIw205()` once after the server starts. It builds the same eight templates synchronously and avoids a separate task scheduler or external runtime dependency.
 
 The actual hot-path improvement comes from:
 
@@ -172,13 +170,13 @@ Two 180-second Spark profiles used the same setup:
 
 * Forge 47.4.10
 * Immersive Weathering 2.0.5
-* Quantified API 2.1.0
+* Quantified API 2.1.0 (present because the profiled IWT 1.1.0 package required it)
 * Random tick speed 1000
 * One fake player
 
 The baseline server did not have IWT installed.
 
-The comparison server used the final packaged IWT jar.
+The comparison server used the final packaged IWT 1.1.0 jar. This profile predates removal of the Quantified API dependency; no new runtime-profile result is claimed for the dependency-removal change.
 
 These are whole-server results, not isolated IWT-only measurements. The worlds also had slightly different entity counts, with 25 entities in the baseline and 21 with IWT, so the results should be treated as directional evidence.
 
@@ -204,16 +202,16 @@ Java heap and process RAM are also not the same thing, so they are intentionally
 
 ## Verification
 
-The final Forge jar:
+The profiled IWT 1.1.0 Forge jar:
 
 * Started successfully
-* Loaded alongside Immersive Weathering and Quantified API
+* Loaded alongside Immersive Weathering and the then-required Quantified API
 * Applied its mixins without errors
 * Completed the stress profile
 * Preserved native area ordering and shuffle behaviour
 * Passed template, cache, concurrency and boundary tests
 
-Fabric compiles and remaps successfully, but its runtime result is not being claimed yet because the available Fabric harness failed during Quantified API Vulkan-device initialization before IWT itself could be properly exercised.
+Fabric compiled and remapped successfully for IWT 1.1.0, but its runtime result was not claimed because the then-required Quantified API failed during Vulkan-device initialization before IWT itself could be properly exercised. The current implementation removes that startup path; a fresh Fabric runtime profile is still required before claiming runtime results.
 
 Benchmark sources:
 
