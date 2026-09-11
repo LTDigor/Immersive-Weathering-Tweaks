@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "org.admany.iwt.mixin.neoforge",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlockGrowthHandlerForgeMixin",
+    "AreaCheckForgeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
