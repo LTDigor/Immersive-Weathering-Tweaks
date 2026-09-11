@@ -26,18 +26,18 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p /tmp/decompiled
-          echo '=== JAR CONTENTS ==='
-          jar tf /tmp/iwt.jar | sort
-          echo '=== QUANTIFIED REFERENCES ==='
-          unzip -p /tmp/iwt.jar META-INF/neoforge.mods.toml 2>/dev/null | grep -i -C3 quantified || true
-          unzip -p /tmp/iwt.jar fabric.mod.json 2>/dev/null | grep -i -C3 quantified || true
-          strings /tmp/iwt.jar | grep -i quantified || true
+          echo '=== NEOFORGE METADATA ==='
+          unzip -p /tmp/iwt.jar META-INF/neoforge.mods.toml
+          echo '=== NEOFORGE MIXINS ==='
+          unzip -p /tmp/iwt.jar iwt-neoforge.mixins.json
+          echo '=== MANIFEST ==='
+          unzip -p /tmp/iwt.jar META-INF/MANIFEST.MF
           java -jar /tmp/cfr.jar /tmp/iwt.jar --outputdir /tmp/decompiled --silent true
-          echo '=== DECOMPILED IWT SOURCES ==='
-          find /tmp/decompiled -type f -name '*.java' -print -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \;
-      - name: Upload decompiled sources
+      - name: Upload inspection artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: iwt-1.3.1-decompiled
-          path: /tmp/decompiled
+          name: iwt-1.3.1-inspection
+          path: |
+            /tmp/iwt.jar
+            /tmp/decompiled
           retention-days: 1
