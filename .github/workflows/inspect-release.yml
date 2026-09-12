@@ -1,4 +1,4 @@
-name: Verify NeoForge 1.21.1 no-QAPI branch
+name: Inspect Seismica 1.7.0
 
 on:
   push:
@@ -9,40 +9,36 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out PR branch
-        uses: actions/checkout@v4
-        with:
-          ref: remove-quantified-api-neoforge-1.21.1
-      - name: Set up Java 21
-        uses: actions/setup-java@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
-      - name: Build NeoForge 1.21.1
+      - name: Download Seismica and CFR
         run: |
-          chmod +x gradlew
-          ./gradlew --no-daemon -p platforms/neoforge/1.21.1 build
-      - name: Verify no Quantified API dependency remains
-        shell: bash
+          set -euxo pipefail
+          curl -L --fail -o /tmp/seismica.jar https://cursemaven.com/curse/maven/seismica-1609222/8717991/seismica-1609222-8717991.jar
+          curl -L --fail -o /tmp/cfr.jar https://repo1.maven.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar
+          sha256sum /tmp/seismica.jar
+      - name: Decompile
         run: |
-          set -euo pipefail
-          JAR=platforms/neoforge/1.21.1/build/libs/immersive-weathering-tweaks-neoforge-1.3.1.jar
-          test -f "$JAR"
-          unzip -p "$JAR" META-INF/neoforge.mods.toml > /tmp/neoforge.mods.toml
-          ! grep -qi 'quantified' /tmp/neoforge.mods.toml
-          ! jar tf "$JAR" | grep -q 'org/admany/quantified'
-          ! zipgrep -i 'org.admany.quantified' "$JAR"
-          jar tf "$JAR" | grep -q 'org/admany/iwt/neoforge/IwtForge.class'
-          jar tf "$JAR" | grep -q 'org/admany/iwt/mixin/neoforge/AreaCheckForgeMixin.class'
-          jar tf "$JAR" | grep -q 'org/admany/iwt/mixin/neoforge/BlockGrowthHandlerForgeMixin.class'
-          sha256sum "$JAR"
-      - name: Upload verified jar
+          set -euxo pipefail
+          mkdir -p /tmp/seismica-decompiled
+          java -jar /tmp/cfr.jar /tmp/seismica.jar --outputdir /tmp/seismica-decompiled --silent true
+          jar tf /tmp/seismica.jar | sort > /tmp/jar-contents.txt
+          unzip -p /tmp/seismica.jar META-INF/neoforge.mods.toml > /tmp/neoforge.mods.toml || true
+          grep -RniE 'ServerTick|LevelTick|PlayerTick|TickEvent|onTick|setBlock|destroyBlock|FallingBlockEntity|sendTo|PacketDistributor|ChunkPos|for \(|while \(|getPlayers|allPlayers|save|SavedData|BlockPos|radius|tsunami|earthquake|collapse|fault' /tmp/seismica-decompiled > /tmp/hotspots.txt || true
+      - name: Upload inspection
         uses: actions/upload-artifact@v4
         with:
-          name: iwt-neoforge-1.21.1-no-qapi
-          path: platforms/neoforge/1.21.1/build/libs/immersive-weathering-tweaks-neoforge-1.3.1.jar
-          retention-days: 7
+          name: seismica-1.7.0-review
+          path: |
+            /tmp/seismica.jar
+            /tmp/seismica-decompiled
+            /tmp/jar-contents.txt
+            /tmp/neoforge.mods.toml
+            /tmp/hotspots.txt
+          retention-days: 1
